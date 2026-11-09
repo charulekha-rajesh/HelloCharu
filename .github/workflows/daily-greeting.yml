@@ -1,0 +1,52 @@
+name: Daily greeting
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  send-greeting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Run greeting and email output
+        env:
+          GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          output="$(python main.py)"
+          printf '%s\n' "$output"
+          python - "$output" <<'PY'
+          import os
+          import smtplib
+          import sys
+          from datetime import date
+          from email.message import EmailMessage
+
+          username = os.environ["GMAIL_USERNAME"]
+          app_password = os.environ["GMAIL_APP_PASSWORD"]
+          recipient = os.environ["EMAIL_TO"]
+          output = sys.argv[1]
+
+          message = EmailMessage()
+          message["Subject"] = f"Daily Hello Charu - {date.today().isoformat()}"
+          message["From"] = username
+          message["To"] = recipient
+          message.set_content(output)
+
+          with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+              smtp.login(username, app_password)
+              smtp.send_message(message)
+          PY
