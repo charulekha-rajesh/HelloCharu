@@ -1,0 +1,5 @@
+[project]
+name = "hello-charu"
+version = "0.1.0"
+description = "Print a greeting and today's date."
+requires-python = ">=3.9"
